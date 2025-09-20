@@ -48,6 +48,13 @@ sales_collection = database.get_collection("vendas")
 class TokenData(BaseModel): username: str | None = None
 class User(BaseModel): username: str; role: str
 class UserInDB(User): hashed_password: str
+class UserCreate(BaseModel):
+    username: str
+    password: str
+    role: str
+class UserOut(BaseModel):
+    username: str
+    role: str
 class ProductBase(BaseModel):
     name: str = Field(..., min_length=3)
     barcode: Optional[str] = None
@@ -97,14 +104,27 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]):
 app = FastAPI(title="PDV System Backend")
 
 # --- Endpoints de Autenticação e Usuário ---
-@app.post("/token")
+@app.post("/token", summary="Gera um token de acesso para o usuário")
 async def login_for_access_token(form_data: Annotated[OAuth2PasswordRequestForm, Depends()]):
     user = await authenticate_user(form_data.username, form_data.password)
     if not user: raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuário ou senha incorretos")
     access_token = create_access_token(data={"sub": user.username, "role": user.role}, expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES))
     return {"access_token": access_token, "token_type": "bearer"}
-@app.get("/users/me", response_model=User)
+
+@app.get("/users/me", response_model=User, summary="Obtém os dados do usuário logado")
 async def read_users_me(current_user: Annotated[User, Depends(get_current_user)]): return current_user
+
+@app.post("/usuarios", response_model=UserOut, status_code=status.HTTP_201_CREATED, summary="Cria um novo usuário no sistema")
+async def create_user(user_to_create: UserCreate, current_user: Annotated[User, Depends(get_current_user)]):
+    if current_user.role != 'admin':
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Acesso negado: Somente administradores podem criar usuários.")
+    if await user_collection.find_one({"username": user_to_create.username}):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"O nome de usuário '{user_to_create.username}' já está em uso.")
+    
+    hashed_password = get_password_hash(user_to_create.password)
+    new_user_doc = {"username": user_to_create.username, "hashed_password": hashed_password, "role": user_to_create.role}
+    await user_collection.insert_one(new_user_doc)
+    return UserOut(**new_user_doc)
 
 # --- Endpoints CRUD de Produtos ---
 @app.post("/produtos", response_model=ProductInDB, status_code=status.HTTP_201_CREATED)
@@ -112,23 +132,27 @@ async def create_product(product: ProductCreate, current_user: Annotated[User, D
     if product.barcode and await product_collection.find_one({"barcode": product.barcode}):
         raise HTTPException(status_code=409, detail=f"Produto com código de barras '{product.barcode}' já existe.")
     new_product = await product_collection.insert_one(product.dict()); return await product_collection.find_one({"_id": new_product.inserted_id})
+
 @app.get("/produtos", response_model=List[ProductInDB])
 async def list_products(current_user: Annotated[User, Depends(get_current_user)], search: Optional[str] = None, active_only: bool = True):
     query = {}
     if active_only: query["is_active"] = True
     if search: query["name"] = {"$regex": search, "$options": "i"}
     return await product_collection.find(query).to_list(1000)
+
 @app.get("/produtos/lookup/{term}", response_model=ProductInDB)
 async def lookup_product(term: str, current_user: Annotated[User, Depends(get_current_user)]):
     query = {"$or": [{"barcode": term}, {"name": {"$regex": f"^{term}$", "$options": "i"}}, {"_id": ObjectId(term) if ObjectId.is_valid(term) else None}], "is_active": True}
     if (p := await product_collection.find_one(query)): return p
     raise HTTPException(status_code=404, detail="Produto não encontrado")
+
 @app.put("/produtos/{pid}", response_model=ProductInDB)
 async def update_product(pid: str, p_up: ProductUpdate, current_user: Annotated[User, Depends(get_current_user)]):
     d = p_up.dict(exclude_unset=True)
     if len(d) >= 1: await product_collection.update_one({"_id": ObjectId(pid)}, {"$set": d})
     if (p := await product_collection.find_one({"_id": ObjectId(pid)})): return p
     raise HTTPException(status_code=404, detail=f"Produto {pid} não encontrado")
+
 @app.delete("/produtos/{pid}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_product(pid: str, current_user: Annotated[User, Depends(get_current_user)]):
     r = await product_collection.update_one({"_id": ObjectId(pid)}, {"$set": {"is_active": False}})
