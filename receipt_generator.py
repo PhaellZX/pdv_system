@@ -1,4 +1,3 @@
-# receipt_generator.py
 from PIL import Image, ImageDraw, ImageFont
 import datetime
 import sys

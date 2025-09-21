@@ -1,4 +1,3 @@
-# run_server.py
 import uvicorn
 import sys
 import os

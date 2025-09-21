@@ -1,4 +1,3 @@
-# run.py
 import uvicorn
 import threading
 import tkinter as tk

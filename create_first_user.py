@@ -1,4 +1,3 @@
-# create_first_user.py
 import asyncio
 import motor.motor_asyncio
 from passlib.context import CryptContext
