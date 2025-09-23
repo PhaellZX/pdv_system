@@ -54,7 +54,7 @@ class LoginApp:
             response = requests.post(f"http://127.0.0.1:8000/token", data={"username": username, "password": password})
             if response.status_code == 200:
                 access_token = response.json().get("access_token")
-                self.main_frame.destroy()
+                self.main_frame.pack_forget()
                 MainApplication(self.root, token=access_token).pack(expand=True, fill=tk.BOTH)
             elif response.status_code == 401: messagebox.showerror("Erro de Login", "Nome de usuário ou senha incorretos.")
             else: messagebox.showerror("Erro", f"Ocorreu um erro inesperado: {response.text}")

@@ -11,6 +11,7 @@ from passlib.context import CryptContext
 from prophet import Prophet
 from pydantic import BaseModel, Field, GetCoreSchemaHandler
 from pydantic_core import core_schema
+from fastapi.encoders import jsonable_encoder
 
 # --- Configuração para lidar com o ObjectId do MongoDB ---
 class PyObjectId(ObjectId):
@@ -38,7 +39,9 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # --- Conexão com o Banco de Dados (MongoDB) ---
 MONGO_DETAILS = "mongodb://localhost:27017"
+DATABASE_NAME = "pdv_system"
 client = motor.motor_asyncio.AsyncIOMotorClient(MONGO_DETAILS)
+db = client[DATABASE_NAME] 
 database = client.pdv_system
 user_collection = database.get_collection("usuarios")
 product_collection = database.get_collection("produtos")
@@ -210,3 +213,43 @@ async def get_sales_forecast(product_id: str, current_user: Annotated[User, Depe
     
     future_forecast = forecast[forecast['ds'] > df['ds'].max()]
     return [ForecastPoint(date=row['ds'].date(), predicted_sales=max(0, row['yhat'])) for _, row in future_forecast.iterrows()]
+
+class FullBackup(BaseModel):
+    products: List[ProductInDB]
+    users: List[UserInDB]
+    sales: List[SaleInDB]
+
+def serialize_docs(docs):
+    """Função auxiliar para garantir a conversão correta dos dados do MongoDB."""
+    if not docs:
+        return []
+    # --- CORREÇÃO APLICADA AQUI ---
+    # Adicionamos um 'custom_encoder' para ensinar o FastAPI a converter ObjectId para string.
+    return jsonable_encoder(docs, custom_encoder={ObjectId: str})
+
+@app.get("/backup/export/full", response_model=FullBackup)
+async def export_full_backup(current_user: Annotated[User, Depends(get_current_user)]):
+    products = await db["produtos"].find().to_list(length=None)
+    users = await db["usuarios"].find().to_list(length=None)
+    sales = await db["vendas"].find().to_list(length=None)
+    return {
+        "products": serialize_docs(products),
+        "users": serialize_docs(users),
+        "sales": serialize_docs(sales)
+    }
+
+@app.post("/backup/import/full")
+async def import_full_backup(backup: FullBackup, current_user: Annotated[User, Depends(get_current_user)]):
+    await db["produtos"].delete_many({})
+    await db["usuarios"].delete_many({})
+    await db["vendas"].delete_many({})
+
+    products_to_insert = [p.model_dump(by_alias=True, exclude={'id'}) for p in backup.products]
+    users_to_insert = [u.model_dump(by_alias=True, exclude={'id'}) for u in backup.users]
+    sales_to_insert = [s.model_dump(by_alias=True, exclude={'id'}) for s in backup.sales]
+    
+    if products_to_insert: await db["produtos"].insert_many(products_to_insert)
+    if users_to_insert: await db["usuarios"].insert_many(users_to_insert)
+    if sales_to_insert: await db["vendas"].insert_many(sales_to_insert)
+
+    return {"status": "success", "message": "Backup importado com sucesso."}

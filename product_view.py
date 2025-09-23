@@ -64,8 +64,8 @@ class ProductView(ttk.Frame):
         ttk.Button(actions_frame, text="Editar", command=self.edit_selected, bootstyle="info-outline").pack(side=tk.RIGHT, padx=5)
         
         # --- NOVOS BOTÕES DE BACKUP ---
-        ttk.Button(actions_frame, text="Importar Backup(JSON)", command=self.import_products, bootstyle="warning").pack(side=tk.LEFT)
-        ttk.Button(actions_frame, text="Exportar Backup(JSON)", command=self.export_products, bootstyle="secondary").pack(side=tk.LEFT, padx=5)
+        ttk.Button(actions_frame, text="Importar Backup(JSON)", command=self.import_full_backup, bootstyle="warning").pack(side=tk.LEFT)
+        ttk.Button(actions_frame, text="Exportar Backup(JSON)", command=self.export_full_backup, bootstyle="secondary").pack(side=tk.LEFT, padx=5)
         
         # Tabela de produtos
         tree_frame = ttk.Frame(self)
@@ -87,68 +87,64 @@ class ProductView(ttk.Frame):
         except requests.exceptions.RequestException as e: messagebox.showerror("Erro de Conexão", str(e))
 
     # --- NOVAS FUNÇÕES DE IMPORTAÇÃO E EXPORTAÇÃO ---
-    def export_products(self):
+    # Substitua as funções export_products e import_products por estas
+    
+    def export_full_backup(self):
+        """Exporta um backup completo do banco de dados (produtos, usuários, vendas)."""
         try:
-            # Chama o endpoint pedindo TODOS os produtos, não apenas os ativos
-            response = requests.get(f"{BACKEND_URL}/produtos?active_only=false", headers=self.api_headers)
-            if response.status_code != 200:
-                return messagebox.showerror("Erro", f"Não foi possível buscar os produtos para exportar.\nDetalhe: {response.text}")
+            # Chama o novo endpoint de exportação completa
+            response = requests.get(f"{BACKEND_URL}/backup/export/full", headers=self.api_headers)
+            if response.status_code == 200:
+                file_path = filedialog.asksaveasfilename(
+                    defaultextension=".json",
+                    filetypes=[("JSON files", "*.json")],
+                    title="Salvar Backup Completo",
+                    initialfile="backup_pdv_completo.json"
+                )
+                if file_path:
+                    with open(file_path, 'w', encoding='utf-8') as f:
+                        json.dump(response.json(), f, indent=4, ensure_ascii=False)
+                    messagebox.showinfo("Sucesso", "Backup completo exportado com sucesso!")
+            else:
+                messagebox.showerror("Erro", f"Falha ao exportar backup: {response.text}")
+        except requests.exceptions.RequestException as e:
+            messagebox.showerror("Erro de Conexão", f"Não foi possível conectar ao servidor: {e}")
+        except Exception as e:
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro ao exportar: {e}")
 
-            products_data = response.json()
-            
-            file_path = filedialog.asksaveasfilename(
-                defaultextension=".json",
-                filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-                title="Salvar backup de produtos"
-            )
-            if not file_path: return # Usuário cancelou
-
-            with open(file_path, 'w', encoding='utf-8') as f:
-                json.dump(products_data, f, indent=4, ensure_ascii=False)
-            
-            messagebox.showinfo("Sucesso", f"Backup de {len(products_data)} produtos exportado para:\n{file_path}")
-
-        except requests.exceptions.RequestException as e: messagebox.showerror("Erro de Conexão", str(e))
-        except Exception as e: messagebox.showerror("Erro Inesperado", f"Ocorreu um erro ao exportar: {e}")
-
-    def import_products(self):
-        if not messagebox.askyesno("Confirmar Importação", "Isso adicionará produtos a partir de um arquivo JSON. Produtos com códigos de barras já existentes serão ignorados. Deseja continuar?"):
+    def import_full_backup(self):
+        """Importa um backup completo, substituindo TODOS os dados atuais."""
+        # AVISO CRÍTICO AO USUÁRIO SOBRE A OPERAÇÃO DESTRUTIVA
+        if not messagebox.askyesno(
+            "Atenção! Operação Destrutiva!",
+            "Você está prestes a importar um backup completo.\n\n"
+            "ISSO IRÁ APAGAR TODOS OS DADOS ATUAIS (produtos, usuários e vendas) e substituí-los pelos dados do arquivo.\n\n"
+            "Esta ação não pode ser desfeita.\n\nDeseja continuar?"
+        ):
             return
 
         file_path = filedialog.askopenfilename(
-            filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
-            title="Abrir backup de produtos"
+            filetypes=[("JSON files", "*.json")],
+            title="Abrir Arquivo de Backup Completo"
         )
         if not file_path: return
 
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                products_to_import = json.load(f)
+                backup_data = json.load(f)
             
-            if not isinstance(products_to_import, list):
-                return messagebox.showerror("Erro de Formato", "O arquivo JSON deve conter uma lista de produtos.")
-
-            success_count = 0
-            fail_count = 0
+            # Chama o novo endpoint de importação, enviando o arquivo inteiro de uma vez
+            response = requests.post(f"{BACKEND_URL}/backup/import/full", headers=self.api_headers, json=backup_data)
             
-            for product in products_to_import:
-                # Remove o ID para que o banco de dados gere um novo
-                product.pop('_id', None)
-                product.pop('id', None)
-                
-                response = requests.post(f"{BACKEND_URL}/produtos", headers=self.api_headers, json=product)
-                if response.status_code == 201:
-                    success_count += 1
-                else:
-                    fail_count += 1
-                    print(f"Falha ao importar produto {product.get('name')}: {response.text}")
-            
-            messagebox.showinfo("Importação Concluída", f"Sucesso: {success_count} produtos importados.\nFalhas: {fail_count} produtos (verifique o console para detalhes).")
-            self.load_products()
-
-        except json.JSONDecodeError: messagebox.showerror("Erro de Arquivo", "O arquivo selecionado não é um JSON válido.")
-        except Exception as e: messagebox.showerror("Erro Inesperado", f"Ocorreu um erro ao importar: {e}")
-
+            if response.status_code == 200:
+                messagebox.showinfo("Sucesso", "Backup completo importado com sucesso!\nA lista de produtos será atualizada.")
+                self.load_products() # Recarrega a lista de produtos na tela
+            else:
+                messagebox.showerror("Erro", f"Falha ao importar backup: {response.text}")
+        except json.JSONDecodeError:
+            messagebox.showerror("Erro de Arquivo", "O arquivo selecionado não é um JSON válido.")
+        except Exception as e:
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro ao importar o arquivo: {e}")
 
     # (O resto das funções: get_selected_product_id, edit_selected, delete_selected, open_product_form continuam as mesmas)
     def get_selected_product_id(self):
