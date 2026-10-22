@@ -1,115 +1,159 @@
-# Sistema de PDV com Previsão de Vendas (Desktop)
+# POS System with Sales Forecasting (Desktop)
 
-![Screenshot da Tela de PDV](imgs/Screenshot_1.png)
+![POS Screen Preview](assets/images/Screenshot_1.png)
 
-## 🎯 Objetivo
+## 🎯 Overview
 
-Este projeto é um sistema completo de Ponto de Venda (PDV) e gestão de estoque para desktop. Desenvolvido em Python, ele combina uma interface gráfica intuitiva com um backend robusto e funcionalidades de Inteligência Artificial para prever a demanda de produtos. A aplicação final é distribuída como dois executáveis separados: um para o servidor backend e outro para a interface do cliente.
+This repository features a Point of Sale (POS) and inventory management desktop solution. Built with Python, it integrates an intuitive Graphical User Interface (GUI) with a FastAPI backend and Machine Learning algorithms to predict product demand. The compiled application is distributed as two independent executables: one for the backend server and another for the client GUI interface.
 
-## 🛠️ Tecnologias Utilizadas
+## 🛠️ Tech Stack
 
-* **Linguagem:** Python 3.10+
-* **Interface Gráfica (Frontend):** Tkinter, com temas profissionais da `ttkbootstrap`.
-* **Backend:** API local com FastAPI, rodando com Uvicorn.
-* **Banco de Dados:** MongoDB.
-* **Inteligência Artificial:** `Prophet` (do Facebook) para previsão de séries temporais.
-* **Empacotamento:** `PyInstaller` para criar os executáveis.
-* **Análise de Dados:** `Pandas` para manipulação de dados.
-* **Geração de Imagens:** `Pillow` para a criação de recibos.
-* **Gráficos:** `Matplotlib` para a visualização de dados nos relatórios.
+* **Programming Language:** Python 3.10+
+* **Graphical User Interface (GUI):** Tkinter enhanced with `ttkbootstrap` modern themes.
+* **Backend API:** Local REST API built with FastAPI and hosted via Uvicorn.
+* **Database Engine:** MongoDB.
+* **Machine Learning Engine:** Facebook's `Prophet` for time series sales forecasting.
+* **Executable Packaging:** `PyInstaller` for standalone binary creation.
+* **Data Manipulation:** `Pandas` for dataset processing.
+* **Document Generation:** `Pillow` (PIL) for image receipt rendering.
+* **Data Visualization:** `Matplotlib` for dashboard analytics charts.
 
-## ✨ Funcionalidades
+## ✨ Features
 
-* **Autenticação por Perfil:** Sistema de login seguro com diferentes níveis de acesso.
-* **Gestão de Produtos:** CRUD completo, controle de estoque e backup/restauração em JSON.
-* **Ponto de Venda (PDV):** Interface ágil para registro de vendas e cálculo de troco.
-* **Geração de Recibos:** Criação automática de um comprovante visual (.png) após cada venda.
-* **Dashboard de Relatórios:** Visualização de KPIs (Faturamento, N° de Vendas, Ticket Médio) e gráficos.
-* **Previsão de Vendas (IA):** Utiliza o histórico de vendas para prever a demanda futura de produtos.
-* **Criação de Usuários:** Interface administrativa via API (Swagger UI) para criar novos usuários.
+* **Role-Based Authentication:** Secure user access control system.
+* **Inventory Management:** Full CRUD operations, real-time stock tracking, and complete JSON database backup/restore functionality.
+* **Point of Sale (POS):** Fast-checkout cashier terminal with automatic change calculation.
+* **Receipt Generation:** Automatic visual image receipt (.png) rendering upon transaction completion.
+* **Analytics Dashboard:** Executive KPI monitoring (Total Revenue, Sales Volume, Average Ticket Size) and graphical sales insights.
+* **Sales Forecasting (AI):** Machine Learning pipeline predicting future product demand based on historical transaction logs.
+* **User Provisioning:** Administrative endpoint management for creating new user credentials.
 
-## 🚀 Como Instalar e Configurar
+## 📁 Repository Structure
 
-Siga os passos abaixo para configurar o ambiente de desenvolvimento.
-
-**1. Pré-requisitos:**
-* **Python 3.10 ou superior:** [python.org](https://www.python.org/downloads/)
-* **MongoDB Community Server:** É necessário ter o MongoDB instalado e rodando na sua máquina. [Faça o download aqui](https://www.mongodb.com/try/download/community).
-
-**2. Setup do Projeto:**
-* Clone este repositório ou baixe os arquivos para uma pasta no seu computador.
-* Abra o terminal e navegue até a pasta do projeto.
-
-**3. Crie um Ambiente Virtual:**
-```bash
-# Cria o ambiente virtual
-python -m venv venv
-
-# Ativa o ambiente (Windows)
-.\venv\Scripts\activate
-
-# Ativa o ambiente (Linux/Mac)
-source venv/bin/activate
+```text
+.
+├── assets/
+│   ├── fonts/
+│   │   └── DejaVuSansMono.ttf
+│   ├── icons/
+│   │   ├── icon.ico
+│   │   └── icon.png
+│   └── images/
+│       └── Screenshot_1.png
+├── build_scripts/
+│   ├── app.spec
+│   └── server.spec
+├── config/
+├── src/
+│   ├── core/
+│   ├── forecasting/
+│   ├── utils/
+│   │   ├── receipt_generator.py
+│   │   └── setup_db.py
+│   └── views/
+│       ├── forecast_view.py
+│       ├── login_view.py
+│       ├── main_view.py
+│       ├── pos_view.py
+│       ├── product_view.py
+│       └── reports_view.py
+├── tests/
+├── .gitignore
+├── main.py
+├── README.md
+├── requirements.txt
+├── run.py
+└── run_server.py
 ```
 
-**4. Instale as Dependências:**
+##  🚀 Installation & Setup
+
+Follow these steps to set up your local development environment.
+
+**1. Prerequisites:**
+* **Python 3.10+** Download and install from [python.org](https://www.python.org/downloads/)
+* **MongoDB Community Server:** Ensure MongoDB is installed and running locally on standard port 27017. Download from [MongoDB Community](https://www.mongodb.com/try/download/community).
+
+**2. Environment Setup:**
+* Clone this repository and navigate to the project directory:
+
+```bash
+git clone [https://github.com/PhaellZX/pdv_system.git](https://github.com/PhaellZX/pdv_system.git)
+cd pdv_system
+```
+
+Create and activate a Python virtual environment:
+
+```bash
+# Linux / macOS
+python3 -m venv venv
+source venv/bin/activate
+
+# Windows PowerShell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+```
+
+**3. Install Dependencies:**
 ```bash
 pip install -r requirements.txt
 ```
 
-**5. Crie o Primeiro Usuário no Banco:**
-Execute o script `create_first_user.py` para criar um usuário `admin` com a senha `admin123`.
+**4. Database Initialization:**
+
+Run the setup script to seed the database with default administrator credentials (admin / admin123):
+
 ```bash
-python create_first_user.py
+python -m src.utils.setup_db
 ```
 
-## ⚡ Como Executar o Sistema
+## ⚡ Running the Application
 
-Existem duas formas de executar o sistema:
+### Development Mode
 
-### Modo de Desenvolvimento (usando os scripts Python)
+Requires two separate terminal sessions:
 
-Ideal para fazer alterações no código. Você precisará de dois terminais.
+1. Terminal 1 - Backend Server:
 
-1.  **Terminal 1 - Inicie o Backend:**
-    ```bash
-    uvicorn main:app --reload
-    ```
-2.  **Terminal 2 - Inicie o Frontend:**
-    ```bash
-    python login_app.py
-    ```
+```bash
+uvicorn main:app --reload
+```
 
-### Modo de Produção (usando os executáveis gerados)
+2. Terminal 2 - Client Desktop Interface:
 
-1.  **Inicie o Servidor:** Vá para a pasta `dist/server` e dê um clique duplo em **`server.exe`**. Uma janela de console preta aparecerá e ficará aberta. Mantenha-a assim.
-2.  **Inicie a Interface:** Vá para a pasta `dist/PDVSystem` e dê um clique duplo em **`PDVSystem.exe`**. A tela de login aparecerá.
+```bash
+python run.py
+```
 
-## 📦 Como Gerar os Executáveis (Build)
+### Standalone Server Mode
 
-O processo de build cria dois executáveis independentes.
+If running the dedicated server host script directly:
 
-**1. Pré-requisito:**
-Certifique-se de que o PyInstaller está instalado:
+```bash
+python run_server.py
+```
+
+## 📦 Building Executable Binaries (PyInstaller)
+
+To compile the application into standalone executables:
+
+1. Ensure PyInstaller is installed:
+
 ```bash
 pip install pyinstaller
 ```
 
-**2. Prepare os Arquivos de "Receita" (`.spec`)**
-Você precisará de três arquivos de script (`run_server.py`, `login_app.py`, `receipt_generator.py`) e dois arquivos de "receita" (`server.spec`, `app.spec`) na pasta raiz do seu projeto. Certifique-se de que o conteúdo deles está correto, conforme definido durante o desenvolvimento.
+2. Build Server Executable:
 
-**3. Gere os Executáveis**
-Execute os seguintes comandos no terminal, na pasta raiz do projeto:
+```bash
+pyinstaller build_scripts/server.spec
+```
 
-1.  **Construa o Servidor:**
-    ```bash
-    pyinstaller server.spec
-    ```
-2.  **Construa a Interface:**
-    ```bash
-    pyinstaller app.spec
-    ```
+3. Build GUI Client Executable:
 
-Após a conclusão, a pasta `dist` conterá as subpastas `server` e `PDVSystem` com seus respectivos executáveis, prontos para serem usados ou distribuídos.
+```bash
+pyinstaller build_scripts/app.spec
+```
 
+Upon completion, compiled binaries will be output into the dist/ directory.
 ---
