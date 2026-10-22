@@ -1,7 +1,5 @@
 # POS System with Sales Forecasting (Desktop)
 
-![POS Screen Preview](assets/images/Screenshot_1.png)
-
 ## 🎯 Overview
 
 This repository features a Point of Sale (POS) and inventory management desktop solution. Built with Python, it integrates an intuitive Graphical User Interface (GUI) with a FastAPI backend and Machine Learning algorithms to predict product demand. The compiled application is distributed as two independent executables: one for the backend server and another for the client GUI interface.
@@ -31,7 +29,6 @@ This repository features a Point of Sale (POS) and inventory management desktop 
 ## 📁 Repository Structure
 
 ```text
-.
 ├── assets/
 │   ├── fonts/
 │   │   └── DejaVuSansMono.ttf
@@ -156,4 +153,5 @@ pyinstaller build_scripts/app.spec
 ```
 
 Upon completion, compiled binaries will be output into the dist/ directory.
+
 ---
